@@ -3,12 +3,14 @@ import {
   Award, FileText, Activity, CheckCircle2, Calculator, 
   Fingerprint, ShieldCheck, Scale, RefreshCw, Percent, 
   TrendingUp, ShieldAlert, Cpu, Check, AlertCircle, Sparkles,
-  Download, TrendingDown, Lock, Shield, Server, Landmark
+  Download, TrendingDown, Lock, Shield, Server, Landmark,
+  Copy, Send, Eye, BookOpen, MessageSquare, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
 import { translations, Language } from '../translations';
 import { Transaction } from '../types';
+import { playChimeSuccess, playKeyTap } from '../utils/sound';
 
 interface LicensingTabProps {
   balance: number;
@@ -86,6 +88,418 @@ export default function LicensingTab({
   // Smart audit live metrics states
   const [integrityScore, setIntegrityScore] = useState<number>(100);
   const [recalculatingScore, setRecalculatingScore] = useState<boolean>(false);
+
+  // CEO Positioning & Pitch states
+  const [activeSubTab, setActiveSubTab] = useState<'fiduciary' | 'smart_contracts' | 'ceo_pitch'>('fiduciary');
+
+  // Smart contracts states
+  const [scTemplate, setScTemplate] = useState<'non_exclusive_global' | 'as_is_distribution' | 'cooperative_agreement'>('non_exclusive_global');
+  const [scClientName, setScClientName] = useState<string>('TrioSphere Distributed Nodes LLC');
+  const [scMicroFee, setScMicroFee] = useState<number>(0.05);
+  const [scStatus, setScStatus] = useState<'idle' | 'signing' | 'deployed'>('idle');
+  const [scHash, setScHash] = useState<string>('');
+  const [scActiveContracts, setScActiveContracts] = useState<{
+    id: string;
+    template: string;
+    client: string;
+    microFee: number;
+    hash: string;
+    deployedAt: string;
+    jurisdiction: string;
+  }[]>([
+    {
+      id: "TSC-9824-A",
+      template: "Distribución Global No Exclusiva (As-Is)",
+      client: "Global Node Syndicate Inc.",
+      microFee: 0.05,
+      hash: "8f39c2d1b4a0c8e9d72e1f4095bc358d24ef60e719ba420c8de150390acbe892",
+      deployedAt: "25/06/2026 12:45:10",
+      jurisdiction: "Global Non-Exclusive Jurisdictional Regime"
+    }
+  ]);
+
+  const handleDeploySmartContract = () => {
+    setScStatus('signing');
+    playKeyTap();
+    
+    setTimeout(() => {
+      const generatedHash = Array.from({ length: 64 }, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+      
+      const newContract = {
+        id: `TSC-${Math.floor(1000 + Math.random() * 9000)}-S`,
+        template: scTemplate === 'non_exclusive_global' 
+          ? (lang === 'en' ? 'Non-Exclusive Global Distribution' : lang === 'pt' ? 'Distribuição Global Não Exclusiva' : 'Distribución Global No Exclusiva')
+          : scTemplate === 'as_is_distribution'
+          ? (lang === 'en' ? 'AS-IS Open Technological License' : lang === 'pt' ? 'Licença Tecnológica Aberta AS-IS' : 'Licencia Tecnológica Abierta AS-IS')
+          : (lang === 'en' ? 'Collective Adhesion Partnership Agreement' : lang === 'pt' ? 'Acordo de Parceria de Adesão Coletiva' : 'Acuerdo de Alianza de Adhesión Colectiva'),
+        client: scClientName || 'TrioSphere Global Participant',
+        microFee: scMicroFee,
+        hash: generatedHash,
+        deployedAt: new Date().toLocaleString(lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es-ES' : 'en-US'),
+        jurisdiction: "Global Non-Exclusive Jurisdictional Regime"
+      };
+
+      setScHash(generatedHash);
+      setScActiveContracts(prev => [newContract, ...prev]);
+      setScStatus('deployed');
+      
+      playChimeSuccess();
+
+      onAddLog(
+        lang === 'en' ? 'Smart Contract Deployed Successfully' : lang === 'pt' ? 'Contrato Inteligente Implantado com Sucesso' : 'Contrato Inteligente Desplegado con Éxito',
+        'security',
+        `Smart Contract [${newContract.id}] deployed globally (As-Is / Non-Exclusive) for ${newContract.client}. Hash: ${generatedHash.substring(0, 16)}...`
+      );
+
+      if (onAddTransaction) {
+        onAddTransaction({
+          id: `tx-${Date.now()}`,
+          date: new Date().toLocaleDateString() + ", " + new Date().toLocaleTimeString().substring(0, 5),
+          type: 'deposit',
+          description: `Smart Contract ${newContract.id} Deployed`,
+          sender: "TrioSphere Engine",
+          receiver: "Victor Barreto",
+          amount: 0.00,
+          devFee: 0.00,
+          finalAmount: 0.00,
+          status: 'completed',
+          securityHash: generatedHash
+        });
+      }
+    }, 1800);
+  };
+
+  const generateSmartContractPDF = (contract: any) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 16;
+    const contentWidth = pageWidth - (margin * 2);
+
+    // Decorative borders
+    doc.setDrawColor(99, 102, 241); 
+    doc.setLineWidth(0.6);
+    doc.rect(margin - 4, margin - 4, contentWidth + 8, pageHeight - (margin * 2) + 8);
+    
+    doc.setDrawColor(244, 63, 94); 
+    doc.setLineWidth(0.15);
+    doc.rect(margin - 2, margin - 2, contentWidth + 4, pageHeight - (margin * 2) + 4);
+
+    let currentY = margin + 8;
+
+    // Header Title
+    doc.setFillColor(15, 23, 42); 
+    doc.rect(margin, currentY, contentWidth, 24, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("TRIOSPHERE GLOBAL DIGITAL LEDGER SUITE", pageWidth / 2, currentY + 8, { align: 'center' });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text("CERTIFICATE OF SMART CONTRACT DEPLOYMENT • NON-EXCLUSIVE AS-IS REGIME", pageWidth / 2, currentY + 15, { align: 'center' });
+
+    currentY += 34;
+
+    // Introduction
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("DECLARATION OF LEGAL & METROLOGICAL VALIDITY", margin, currentY);
+    
+    currentY += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    const introText = "This cryptographic certificate confirms that a decentralized, non-exclusive 'As-Is' digital agreement has been verified, executed, and registered into the global immutable ledger of TrioSphere. This smart contract is active, universally accessible, and operates continuously without territorial boundaries.";
+    const splitIntro = doc.splitTextToSize(introText, contentWidth);
+    doc.text(splitIntro, margin, currentY);
+
+    currentY += splitIntro.length * 3.5 + 4;
+
+    // Contract Parameters Table
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text("SMART CONTRACT PARAMETERS", margin, currentY);
+
+    currentY += 5;
+
+    const rowHeight = 8;
+    const colWidth = contentWidth / 2;
+    const fields = [
+      { label: "CONTRACT IDENTIFIER", val: contract.id },
+      { label: "TEMPLATE / LEGAL MODEL", val: contract.template },
+      { label: "BENEFICIARY / CLIENT", val: contract.client },
+      { label: "DISTRIBUTION REGIME", val: "NON-EXCLUSIVE (REGIMEN DE NO EXCLUSIVIDAD)" },
+      { label: "WARRANTY SCOPE", val: "AS-IS / SINE WARRANTY (SIN GARANTÍA EXPRESA)" },
+      { label: "OPERATIONAL MICRO-FEE", val: `$${contract.microFee.toFixed(2)} USD per call` },
+      { label: "DEPLOYMENT TIMESTAMP", val: contract.deployedAt },
+      { label: "BLOCKCHAIN HASH TOKEN", val: contract.hash.substring(0, 32) + "..." },
+      { label: "AUTOR DE LA ARQUITECTURA", val: "Victor Barreto (vicba890@gmail.com)" }
+    ];
+
+    fields.forEach((f, idx) => {
+      const yPos = currentY + (idx * rowHeight);
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+      } else {
+        doc.setFillColor(255, 255, 255);
+      }
+      doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(margin, yPos, contentWidth, rowHeight, 'S');
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.2);
+      doc.setTextColor(71, 85, 105);
+      doc.text(f.label, margin + 4, yPos + 5.5);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(15, 23, 42);
+      doc.text(f.val, margin + colWidth + 4, yPos + 5.5);
+    });
+
+    currentY += (fields.length * rowHeight) + 8;
+
+    // Cryptographic signatures section
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text("CRYPTOGRAPHIC ATTESTATION & SIGNATURES", margin, currentY);
+
+    currentY += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("The signatories hereby execute this smart contract 'as-is' under the terms of complete non-exclusivity:", margin, currentY);
+
+    currentY += 15;
+
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.3);
+    doc.line(margin, currentY, margin + 60, currentY);
+    doc.line(pageWidth - margin - 60, currentY, pageWidth - margin, currentY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Victor Barreto", margin + 30, currentY + 4, { align: 'center' });
+    doc.text("TrioSphere Validator Engine", pageWidth - margin - 30, currentY + 4, { align: 'center' });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Author & Original Licensor", margin + 30, currentY + 7, { align: 'center' });
+    doc.text(`Digital Signer ID: ${contract.hash.substring(0, 12)}`, pageWidth - margin - 30, currentY + 7, { align: 'center' });
+
+    currentY += 16;
+    doc.setDrawColor(15, 23, 42);
+    for (let i = 0; i < 40; i++) {
+      const lineX = margin + 15 + (i * 3.5);
+      const isThick = (i % 3 === 0 || i % 7 === 0);
+      doc.setLineWidth(isThick ? 1.0 : 0.3);
+      doc.line(lineX, currentY, lineX, currentY + 8);
+    }
+    doc.setFont("courier", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`9184 ${contract.id.replace('TSC-', '').replace('-S', '')} 20260625 ${contract.hash.substring(0, 8).toUpperCase()}`, pageWidth / 2, currentY + 11, { align: 'center' });
+
+    doc.save(`triosphere-smartcontract-${contract.id}-${Math.floor(Date.now() / 1000)}.pdf`);
+    
+    onAddLog(
+      lang === 'en' ? 'Smart Contract PDF Downloaded' : lang === 'pt' ? 'PDF do Contrato Inteligente Baixado' : 'PDF de Contrato Inteligente Descargado',
+      'security',
+      `Certificate PDF generated for smart contract ${contract.id}.`
+    );
+  };
+
+  // CEO Positioning & Pitch states
+  const [targetExecutive, setTargetExecutive] = useState<string>('SME CEO');
+  const [pitchTone, setPitchTone] = useState<string>('Metrics & Logic');
+  const [isGeneratingPitch, setIsGeneratingPitch] = useState<boolean>(false);
+  const [pitchData, setPitchData] = useState<{
+    executiveTitle?: string;
+    executiveSummary?: string;
+    linkedinPitch?: string;
+    masterPrompt?: string;
+    strategicAdvice?: string[];
+    metricsProjection?: {
+      efficiencyGain?: string;
+      infraSavings?: string;
+      complianceScore?: string;
+    };
+  } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleGeneratePitch = async () => {
+    setIsGeneratingPitch(true);
+    setPitchData(null);
+    try {
+      const response = await fetch('/api/pyme/ai-ceo-pitch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          targetExecutive,
+          tone: pitchTone,
+          language: lang
+        })
+      });
+      const data = await response.json();
+      setPitchData(data);
+      onAddLog(
+        lang === 'en' ? 'CEO Pitch Generated' : lang === 'pt' ? 'Pitch para CEO Gerado' : 'Pitch para CEO Generado',
+        'system',
+        `Estrategia para ${targetExecutive} creada con tono ${pitchTone}.`
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingPitch(false);
+    }
+  };
+
+  const generatePitchPDF = () => {
+    if (!pitchData) return;
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+
+    // Dynamic verification token
+    const randomHash = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const docControlToken = `TS-PITCH-STRATEGY-${randomHash}-2026`;
+
+    // Draw frame borders
+    doc.setDrawColor(99, 102, 241); // Indigo border
+    doc.setLineWidth(0.6);
+    doc.rect(margin - 4, margin - 4, contentWidth + 8, pageHeight - (margin * 2) + 8);
+    
+    doc.setDrawColor(244, 63, 94); // Rose-500 inner border
+    doc.setLineWidth(0.15);
+    doc.rect(margin - 2, margin - 2, contentWidth + 4, pageHeight - (margin * 2) + 4);
+
+    let currentY = margin + 4;
+
+    // Header Band
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(margin, currentY, contentWidth, 24, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10.5);
+    doc.text("TRIOSPHERE EXECUTIVE POSITIONING REPORT", pageWidth / 2, currentY + 8, { align: 'center' });
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text("ESTRATEGIA SÍNCRONA DE ACCESO Y PROPUESTA DE VALOR COMERCIAL", pageWidth / 2, currentY + 14, { align: 'center' });
+    doc.text(`CÓDIGO DE CONTROL DE PROPUESTA: ${docControlToken}`, pageWidth / 2, currentY + 19, { align: 'center' });
+
+    currentY += 32;
+
+    // Title
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(pitchData.executiveTitle || "PROPUESTA DE OPTIMIZACIÓN DIGITAL", margin, currentY);
+    currentY += 8;
+
+    // Section 1: RESUMEN EJECUTIVO
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(79, 70, 229);
+    doc.text(lang === 'en' ? "EXECUTIVE SUMMARY" : lang === 'pt' ? "RESUMO EXECUTIVO" : "RESUMEN EJECUTIVO DE NEGOCIOS", margin, currentY);
+    currentY += 4;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(51, 65, 85);
+    const summaryText = pitchData.executiveSummary || "";
+    const splitSummary = doc.splitTextToSize(summaryText, contentWidth);
+    doc.text(splitSummary, margin, currentY);
+    currentY += doc.getTextDimensions(splitSummary).h + 8;
+
+    // Section 2: PITCH DIRECTO
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(79, 70, 229);
+    doc.text(lang === 'en' ? "DIRECT OUTREACH PITCH" : lang === 'pt' ? "PITCH DE CONTATO DIRETO" : "PITCH SÍNCRONO DE CONTACTO DIRECTO", margin, currentY);
+    currentY += 4;
+
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.2);
+    
+    const pitchText = pitchData.linkedinPitch || "";
+    const splitPitch = doc.splitTextToSize(pitchText, contentWidth - 6);
+    const boxHeight = doc.getTextDimensions(splitPitch).h + 6;
+    doc.rect(margin, currentY, contentWidth, boxHeight, 'F');
+    doc.rect(margin, currentY, contentWidth, boxHeight, 'S');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "normal");
+    doc.text(splitPitch, margin + 3, currentY + 4.5);
+    currentY += boxHeight + 8;
+
+    // Section 3: METRICAS CLAVE
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(79, 70, 229);
+    doc.text(lang === 'en' ? "STRATEGIC VALUE PROJECTIONS" : lang === 'pt' ? "PROJEÇÕES DE VALOR OPERACIONAL" : "PROYECCIONES OPERATIVAS Y MÉTRICAS DE VALOR", margin, currentY);
+    currentY += 4;
+
+    const metrics = pitchData.metricsProjection || {};
+    doc.setFillColor(241, 245, 249);
+    doc.rect(margin, currentY, contentWidth, 16, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(lang === 'en' ? "OPERATIONAL EFFICIENCY:" : lang === 'pt' ? "EFICIÊNCIA OPERACIONAL:" : "EFICIENCIA OPERATIVA:", margin + 4, currentY + 5);
+    doc.text(lang === 'en' ? "INFRASTRUCTURE SAVINGS:" : lang === 'pt' ? "ECONOMIA DE INFRAESTRUTURA:" : "AHORRO INFRAESTRUCTURA:", margin + 4, currentY + 11);
+
+    doc.setTextColor(15, 23, 42);
+    doc.text(metrics.efficiencyGain || "", margin + 45, currentY + 5);
+    doc.text(metrics.infraSavings || "", margin + 45, currentY + 11);
+
+    doc.setTextColor(71, 85, 105);
+    doc.text(lang === 'en' ? "REGULATORY STANDARDS:" : lang === 'pt' ? "CONFORMIDADE REGULATÓRIA:" : "CUMPLIMIENTO LEGAL:", margin + 105, currentY + 8);
+    doc.setTextColor(16, 185, 129); // green
+    doc.text(metrics.complianceScore || "", margin + 140, currentY + 8);
+
+    currentY += 24;
+
+    // Sello de validación
+    doc.setFillColor(240, 253, 250); // soft teal fill
+    doc.rect(margin, currentY, contentWidth, 14, 'F');
+    doc.setDrawColor(13, 148, 136);
+    doc.setLineWidth(0.35);
+    doc.line(margin, currentY, margin, currentY + 14); // accent bar
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(13, 148, 136);
+    doc.text("VERIFICACIÓN SÍNCRONA DE ESTRATEGIA EJECUTIVA:", margin + 3, currentY + 4);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(6.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text("La lógica, sincronía y coherencia de esta propuesta han sido verificadas contra el núcleo modular de TrioSphere.", margin + 3, currentY + 9);
+
+    doc.save(`triosphere-ceo-pitch-${Math.floor(Date.now() / 1000)}.pdf`);
+    onAddLog(lang === 'en' ? 'Strategy PDF Downloaded' : lang === 'pt' ? 'PDF da Estratégia Baixado' : 'PDF de Estrategia Descargado', 'system', `Se exportó el Reporte de Posicionamiento CEO.`);
+  };
 
   // Recalculate taxes whenever amount, region or taxIncluded status changes
   useEffect(() => {
@@ -580,7 +994,45 @@ export default function LicensingTab({
   return (
     <div className="flex flex-col h-full space-y-4 overflow-y-auto px-1 py-1 pb-16">
       
-      {/* 1. SECTION: HERO / AUTHOR IDENTITY */}
+      {/* High-tech Sub-tab switcher */}
+      <div className="grid grid-cols-3 p-1 bg-slate-950 rounded-xl border border-slate-900 shrink-0 gap-1">
+        <button
+          onClick={() => { setActiveSubTab('fiduciary'); playKeyTap(); }}
+          className={`py-2 text-[9.5px] font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer text-center ${
+            activeSubTab === 'fiduciary'
+              ? 'bg-indigo-650 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-350'
+          }`}
+        >
+          {lang === 'en' ? 'Fiduciary & e-CAC' : lang === 'pt' ? 'Fiduciário & e-CAC' : 'Conformidad'}
+        </button>
+        <button
+          onClick={() => { setActiveSubTab('smart_contracts'); playKeyTap(); }}
+          className={`py-2 text-[9.5px] font-extrabold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer text-center ${
+            activeSubTab === 'smart_contracts'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-350'
+          }`}
+        >
+          <Cpu className="w-3 h-3 text-indigo-400 shrink-0" />
+          {lang === 'en' ? 'Smart Contracts' : lang === 'pt' ? 'Contratos' : 'Contratos'}
+        </button>
+        <button
+          onClick={() => { setActiveSubTab('ceo_pitch'); playKeyTap(); }}
+          className={`py-2 text-[9.5px] font-extrabold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer text-center ${
+            activeSubTab === 'ceo_pitch'
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-350'
+          }`}
+        >
+          <Sparkles className="w-3 h-3 text-pink-400 shrink-0 animate-pulse" />
+          {lang === 'en' ? 'CEO Position' : lang === 'pt' ? 'Posição CEO' : 'Posición CEO'}
+        </button>
+      </div>
+
+      {activeSubTab === 'fiduciary' && (
+        <>
+          {/* 1. SECTION: HERO / AUTHOR IDENTITY */}
       <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-4 rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden text-left">
         <div className="absolute top-0 right-0 p-3 opacity-10">
           <Award className="w-20 h-20 text-indigo-400 stroke-[1.5]" />
@@ -968,6 +1420,425 @@ export default function LicensingTab({
           </div>
         )}
       </div>
+      </>
+      )}
+
+      {activeSubTab === 'smart_contracts' && (
+        <div className="space-y-4 animate-fade-in text-left">
+          {/* Smart Contracts Strategy Room Banner */}
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 p-4 rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Cpu className="w-16 h-16 text-indigo-400" />
+            </div>
+            <div className="flex items-center gap-2.5 relative z-10">
+              <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/25 text-indigo-400">
+                <Cpu className="w-4 h-4 animate-spin-slow" />
+              </div>
+              <div>
+                <h3 className="text-xs uppercase tracking-widest font-black text-indigo-300">
+                  {lang === 'en' ? 'Global Smart Contracts Platform' : lang === 'pt' ? 'Plataforma de Contratos Inteligentes' : 'Contratos Inteligentes Globales'}
+                </h3>
+                <p className="text-xs text-white/90 leading-tight font-bold">
+                  {lang === 'en' ? 'Non-Exclusive & As-Is Universal Ledger Deployment' : lang === 'pt' ? 'Implantação Universal Não Exclusiva & As-Is' : 'Régimen de No Exclusividad y Cláusula As-Is'}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-normal mt-3">
+              {lang === 'en' 
+                ? "Deploy secure digital agreements with global non-exclusivity. Perfect for universal micro-nodes that support on-demand micro-payments with total legal certainty."
+                : lang === 'pt'
+                ? "Implante acordos digitais seguros com não exclusividade global. Perfeito para micronós universais que suportam microtarifas sob demanda."
+                : "Despliegue acuerdos digitales con total no exclusividad global. Ideal para micro-nodos universales que operan con micro-tarifas automatizadas bajo demanda con absoluta seguridad jurídica."}
+            </p>
+          </div>
+
+          {/* Form Creator */}
+          <div className="bg-slate-900/50 border border-slate-850 rounded-2xl p-4 space-y-3.5 text-left">
+            <div className="space-y-3">
+              {/* Client Name Input */}
+              <div>
+                <label className="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  {lang === 'en' ? 'Counterparty / Participant Name' : lang === 'pt' ? 'Nome do Contraparte / Participante' : 'Nombre de la Contraparte / Participante'}
+                </label>
+                <input
+                  type="text"
+                  value={scClientName}
+                  onChange={(e) => setScClientName(e.target.value)}
+                  placeholder="e.g. Node Syndicate LLC"
+                  className="w-full bg-slate-950 border border-slate-850 p-2 rounded-lg text-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-500/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Template Selection */}
+                <div>
+                  <label className="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                    {lang === 'en' ? 'Contract Template' : lang === 'pt' ? 'Modelo de Contrato' : 'Plantilla de Contrato'}
+                  </label>
+                  <select
+                    value={scTemplate}
+                    onChange={(e) => setScTemplate(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-850 p-2 rounded-lg text-slate-300 text-xs font-bold focus:outline-none"
+                  >
+                    <option value="non_exclusive_global">Distribución No-Exclusiva</option>
+                    <option value="as_is_distribution">Licencia Tecnológica As-Is</option>
+                    <option value="cooperative_agreement">Adhesión Colectiva</option>
+                  </select>
+                </div>
+
+                {/* Support Micro-Fee */}
+                <div>
+                  <label className="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                    {lang === 'en' ? 'Operational Micro-Fee' : lang === 'pt' ? 'Microtarifa Operacional' : 'Micro-Tarifa de Soporte'}
+                  </label>
+                  <select
+                    value={scMicroFee}
+                    onChange={(e) => setScMicroFee(parseFloat(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-850 p-2 rounded-lg text-slate-300 text-xs font-bold focus:outline-none"
+                  >
+                    <option value="0.01">$0.01 USD / call</option>
+                    <option value="0.05">$0.05 USD / call</option>
+                    <option value="0.10">$0.10 USD / call</option>
+                    <option value="0.25">$0.25 USD / call</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Deploy Button */}
+            <button
+              onClick={handleDeploySmartContract}
+              disabled={scStatus === 'signing'}
+              className="w-full bg-gradient-to-r from-indigo-650 to-purple-650 hover:from-indigo-600 hover:to-purple-600 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+            >
+              {scStatus === 'signing' ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{lang === 'en' ? 'Broadcasting & Signing...' : lang === 'pt' ? 'Transmitindo & Assinando...' : 'Transmitiendo y Firmando...'}</span>
+                </>
+              ) : (
+                <>
+                  <Cpu className="w-3.5 h-3.5 animate-pulse" />
+                  <span>{lang === 'en' ? 'Deploy Smart Contract (As-Is)' : lang === 'pt' ? 'Implantar Contrato Inteligente' : 'Desplegar Contrato Inteligente'}</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Strategic Legal Banner */}
+          <div className="bg-slate-950/40 border border-slate-850 rounded-2xl p-4 space-y-2 text-left">
+            <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+              <Scale className="w-3.5 h-3.5 text-indigo-400" />
+              {lang === 'en' ? 'Understanding Non-Exclusivity (As-Is)' : lang === 'pt' ? 'Entendendo a Não Exclusividade (As-Is)' : 'Entendiendo la No Exclusividad (As-Is)'}
+            </h4>
+            <p className="text-[9.5px] text-slate-300 leading-normal">
+              {lang === 'en' 
+                ? "This framework provides an instantly pre-signed, unalterable agreement that operates globally. Perfect for software modules or APIs you want distributed universally under a standard non-exclusive regime, securing micro-payments dynamically."
+                : lang === 'pt'
+                ? "Esta estrutura oferece um acordo pré-assinado e inalterável que opera globalmente. Perfeito para módulos de software ou APIs distribuídos sob regime não exclusivo, com microtarifas."
+                : "Esta arquitectura ofrece un acuerdo pre-firmado e inalterable que opera globalmente. Ideal para módulos de software o APIs distribuidos bajo régimen no exclusivo, garantizando micro-pagos dinámicos de forma moderna."}
+            </p>
+          </div>
+
+          {/* Active Contracts Deployed list */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center">
+              <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                {lang === 'en' ? 'Active Deployed Contracts' : lang === 'pt' ? 'Contratos Ativos Implantados' : 'Contratos Activos Desplegados'}
+              </h4>
+              <span className="text-[8px] font-mono text-indigo-400 font-extrabold bg-indigo-950/30 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                TOTAL: {scActiveContracts.length}
+              </span>
+            </div>
+
+            <div className="space-y-2 max-h-[220px] overflow-y-auto">
+              {scActiveContracts.map((contract) => (
+                <div 
+                  key={contract.id}
+                  className="bg-slate-950 border border-slate-900 rounded-xl p-3 space-y-2.5 relative overflow-hidden text-left"
+                >
+                  <div className="absolute top-2 right-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="text-[7.5px] text-emerald-400 font-bold font-mono">ACTIVE</span>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] font-mono bg-indigo-950/50 border border-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded uppercase">
+                      {contract.id}
+                    </span>
+                    <h5 className="text-[10.5px] font-black text-white mt-1 leading-none">{contract.client}</h5>
+                    <p className="text-[9px] text-slate-450 font-mono">{contract.template}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1 text-[8px] font-mono text-slate-500 border-t border-slate-900/60 pt-2">
+                    <div>
+                      <span className="block text-slate-600 uppercase">{lang === 'en' ? 'DEPLOYED AT:' : lang === 'pt' ? 'IMPLANTADO EM:' : 'DESPLEGADO:'}</span>
+                      <span className="text-slate-400">{contract.deployedAt}</span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-600 uppercase">{lang === 'en' ? 'MICRO-FEE:' : lang === 'pt' ? 'TARIFA CHADA:' : 'MICRO-TARIFA:'}</span>
+                      <span className="text-pink-400 font-bold">${contract.microFee.toFixed(2)} USD</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/35 border border-slate-900 p-1.5 rounded text-[8px] font-mono text-slate-450 flex items-center justify-between">
+                    <span className="truncate flex-1 pr-4">Hash: {contract.hash}</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(contract.hash);
+                        playKeyTap();
+                        onAddLog('Hash Copiado', 'security', `Copiado Hash del Contrato ${contract.id}`);
+                      }}
+                      className="text-indigo-400 hover:text-white shrink-0 uppercase font-black tracking-wide bg-slate-950 px-1 py-0.5 rounded border border-slate-850 cursor-pointer"
+                    >
+                      Copy
+                    </button>
+                  </div>
+
+                  {/* Actions buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => generateSmartContractPDF(contract)}
+                      className="flex-1 bg-slate-900 hover:bg-slate-850 border border-indigo-500/20 text-indigo-300 text-[8.5px] font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 uppercase transition-all cursor-pointer"
+                    >
+                      <Download className="w-3 h-3 text-indigo-400" />
+                      {lang === 'en' ? 'Download PDF Certificate' : lang === 'pt' ? 'Baixar Certificado PDF' : 'Descargar Certificado PDF'}
+                    </button>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === 'ceo_pitch' && (
+        <div className="space-y-4 animate-fade-in text-left">
+          {/* Hero Pitch Strategy Info */}
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 p-4 rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden text-left">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Sparkles className="w-16 h-16 text-indigo-400" />
+            </div>
+            <div className="flex items-center gap-2 relative z-10">
+              <div className="p-2 bg-pink-500/10 rounded-xl border border-pink-500/25 text-pink-400">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-xs uppercase tracking-widest font-black text-pink-300">
+                  {lang === 'en' ? 'CEO Positioning Strategy Room' : lang === 'pt' ? 'Sala de Posicionamento CEO' : 'Sala de Posicionamiento CEO'}
+                </h3>
+                <p className="text-xs text-white/90 leading-tight">
+                  {lang === 'en' ? "Pitch TrioSphere's impeccable logic & absolute certainty" : lang === 'pt' ? 'Apresente a lógica impecável e certeza absoluta do TrioSphere' : 'Presente la lógica impecable y certeza absoluta de TrioSphere'}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-normal mt-3">
+              {lang === 'en' 
+                ? "High-level decision-makers look for concrete savings, legal certainty, and mechanical precision. Use this AI engine to auto-generate customized pitches highlighting our compact <5MB, Zero-Ad modular architecture."
+                : lang === 'pt'
+                ? "Decisores de alto nível buscam economia concreta, certeza legal e precisão mecânica. Use esta IA para gerar pitches personalizados destacando nossa arquitetura de <5MB livre de anúncios."
+                : "Los tomadores de decisiones buscan ahorro concreto, certidumbre legal y precisión mecánica. Use esta IA para autogenerar propuestas de alto impacto destacando nuestra arquitectura compacta de <5MB sin publicidad."}
+            </p>
+          </div>
+
+          {/* Form Parameters */}
+          <div className="bg-slate-900/50 border border-slate-850 rounded-2xl p-4 space-y-3.5">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9.5px] uppercase font-bold text-slate-500 tracking-wider block mb-1">
+                  {lang === 'en' ? 'Target Executive' : lang === 'pt' ? 'Executivo Alvo' : 'Ejecutivo Objetivo'}
+                </label>
+                <select
+                  value={targetExecutive}
+                  onChange={(e) => setTargetExecutive(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 p-2 rounded-lg text-slate-300 text-xs font-bold focus:outline-none"
+                >
+                  <option value="SME CEO">CEO de PyME / Director General</option>
+                  <option value="VC Investor">Socio Inversor de VC</option>
+                  <option value="Compliance Officer">Director de Cumplimiento Financiero</option>
+                  <option value="Strategic Partner">Socio Estratégico de Alianza</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[9.5px] uppercase font-bold text-slate-500 tracking-wider block mb-1">
+                  {lang === 'en' ? 'Tone & Angle' : lang === 'pt' ? 'Tom & Ângulo' : 'Tono y Enfoque'}
+                </label>
+                <select
+                  value={pitchTone}
+                  onChange={(e) => setPitchTone(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 p-2 rounded-lg text-slate-300 text-xs font-bold focus:outline-none"
+                >
+                  <option value="Metrics & Logic">Métricas Duras & Lógica Impecable</option>
+                  <option value="ROI & Efficiency">Ahorro de Infraestructura & ROI</option>
+                  <option value="Compliance Shield">Cumplimiento Tributario Preventivo</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              onClick={handleGeneratePitch}
+              disabled={isGeneratingPitch}
+              className="w-full bg-gradient-to-r from-indigo-650 to-pink-650 hover:from-indigo-600 hover:to-pink-600 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+            >
+              {isGeneratingPitch ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>{lang === 'en' ? 'Aligning Logical Certainty...' : lang === 'pt' ? 'Sincronizando Certeza Lógica...' : 'Sincronizando Certeza Lógica...'}</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{lang === 'en' ? 'Generate Pitch & Master Prompt' : lang === 'pt' ? 'Gerar Pitch & Prompt Mestre' : 'Generar Pitch y Prompt Maestro'}</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Generated Material Block */}
+          {isGeneratingPitch && (
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-850 space-y-3.5 text-center">
+              <RefreshCw className="w-6 h-6 text-pink-400 animate-spin mx-auto" />
+              <div className="space-y-1">
+                <p className="text-xs font-extrabold text-white uppercase tracking-wider">
+                  {lang === 'en' ? 'Formulating Synchronous Pitch' : lang === 'pt' ? 'Formulando Pitch Síncrono' : 'Formulando Pitch Síncrono'}
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  [Gemini 3.5 Flash] analizando métricas de memoria, APK 5MB y consistencia DARF...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {pitchData && !isGeneratingPitch && (
+            <div className="space-y-4 animate-fade-in text-left">
+              
+              {/* Executive Title Card */}
+              <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-4 space-y-2.5">
+                <span className="text-[8px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-extrabold px-2 py-0.5 rounded font-mono uppercase tracking-wider">
+                  {lang === 'en' ? 'Value Proposal' : lang === 'pt' ? 'Proposta Comercial' : 'Propuesta Comercial'}
+                </span>
+                <h4 className="text-sm font-black text-white tracking-tight">{pitchData.executiveTitle}</h4>
+                <p className="text-[10.5px] text-slate-300 leading-normal font-sans">
+                  {pitchData.executiveSummary}
+                </p>
+
+                {/* Key Metrics Projection inside the Summary */}
+                {pitchData.metricsProjection && (
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 grid grid-cols-3 gap-2 text-center text-[9px] font-mono mt-3">
+                    <div className="space-y-0.5">
+                      <span className="text-slate-500 block text-[8px] uppercase">{lang === 'en' ? 'Efficiency' : lang === 'pt' ? 'Eficiência' : 'Eficiencia'}</span>
+                      <span className="text-indigo-400 font-extrabold">{pitchData.metricsProjection.efficiencyGain}</span>
+                    </div>
+                    <div className="space-y-0.5 border-x border-slate-900">
+                      <span className="text-slate-500 block text-[8px] uppercase">{lang === 'en' ? 'Infrastructure' : lang === 'pt' ? 'Infraestrutura' : 'Infraestrutura'}</span>
+                      <span className="text-pink-400 font-extrabold">{pitchData.metricsProjection.infraSavings}</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-slate-500 block text-[8px] uppercase">{lang === 'en' ? 'Compliance' : lang === 'pt' ? 'Regulação' : 'Regulación'}</span>
+                      <span className="text-emerald-400 font-extrabold">{pitchData.metricsProjection.complianceScore}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Outreach message with copy block */}
+              <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between items-center pb-1.5 border-b border-slate-800">
+                  <span className="text-[8.5px] font-extrabold text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                    <MessageSquare className="w-3 h-3" />
+                    {lang === 'en' ? 'LinkedIn / Email Outreach Script' : lang === 'pt' ? 'Script para LinkedIn / E-mail' : 'Mensaje Directo para LinkedIn'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pitchData.linkedinPitch || '');
+                      setCopiedField('pitch');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="text-slate-450 hover:text-white flex items-center gap-1 text-[8px] font-bold font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-900 cursor-pointer animate-fade-in"
+                  >
+                    <Copy className="w-2.5 h-2.5" />
+                    {copiedField === 'pitch' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-[10px] font-mono text-slate-350 leading-relaxed max-h-[140px] overflow-y-auto">
+                  {pitchData.linkedinPitch}
+                </div>
+              </div>
+
+              {/* Strategic Advice Card */}
+              {pitchData.strategicAdvice && (
+                <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-4 space-y-2.5">
+                  <h4 className="text-[9.5px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                    {lang === 'en' ? 'Strategic Positioning Advisory' : lang === 'pt' ? 'Diretrizes Estratégicas de Entrada' : 'Directrices de Posicionamiento Estratégico'}
+                  </h4>
+                  <ul className="space-y-2 text-[10px] font-sans text-slate-300">
+                    {pitchData.strategicAdvice.map((adv, idx) => (
+                      <li key={idx} className="flex gap-2 items-start leading-tight">
+                        <span className="w-4 h-4 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center font-bold text-[8.5px] text-emerald-400 shrink-0 font-mono mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span>{adv}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Master Prompt Copyable Card (Literal request from User!) */}
+              <div className="bg-gradient-to-br from-indigo-950/20 via-slate-900/60 to-slate-950/60 p-4 rounded-2xl border border-indigo-500/20 shadow-xl space-y-2.5 relative">
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+                  <span className="text-[7.5px] text-indigo-300 font-bold font-mono">MASTER PROMPT ACTIVE</span>
+                </div>
+                
+                <h4 className="text-[9.5px] uppercase font-bold text-indigo-300 tracking-wider flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                  {lang === 'en' ? 'Master Prompt for Decision-Makers' : lang === 'pt' ? 'Prompt Mestre para CEOs' : 'Prompt Maestro para Posicionamiento'}
+                </h4>
+                
+                <p className="text-[9px] text-slate-400 leading-normal">
+                  {lang === 'en' 
+                    ? "This is the locked positioning prompt. Copy it directly to upscale communication in other enterprise workspaces, focusing on the product's seamless logical logic:" 
+                    : lang === 'pt'
+                    ? 'Este é o prompt de posicionamento bloqueado. Copie-o diretamente para escalar a comunicação em outras salas corporativas:'
+                    : 'Este es el prompt de posicionamiento pre-estructurado. Cópielo directamente para escalar la comunicación en cualquier otro ecosistema corporativo:'}
+                </p>
+
+                <div className="relative">
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-[9.5px] font-mono text-slate-400 leading-relaxed max-h-[110px] overflow-y-auto pr-8">
+                    {pitchData.masterPrompt}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pitchData.masterPrompt || '');
+                      setCopiedField('prompt');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="absolute top-2.5 right-2.5 text-slate-450 hover:text-white flex items-center gap-1 text-[8px] font-bold font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 cursor-pointer shadow-md"
+                  >
+                    <Copy className="w-2.5 h-2.5" />
+                    {copiedField === 'prompt' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+
+              {/* PDF Strategic Pitch Report action button */}
+              <button
+                onClick={generatePitchPDF}
+                className="w-full bg-slate-900 hover:bg-slate-850 border border-indigo-500/25 hover:border-indigo-400 text-indigo-300 font-extrabold text-[10px] py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 uppercase cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-indigo-400" />
+                {lang === 'en' ? 'Download PDF Strategy Proposal' : lang === 'pt' ? 'Baixar Proposta de Estratégia (PDF)' : 'Descargar Propuesta Ejecutiva (PDF)'}
+              </button>
+
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Compliance Check Animation Overlay */}
       <AnimatePresence>

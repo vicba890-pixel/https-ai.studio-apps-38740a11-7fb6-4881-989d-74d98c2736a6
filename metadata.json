@@ -1,6 +1,8 @@
 {
-  "name": "TrioSphere",
-  "description": "La super-app móvil 3-en-1 que combina Social, Streaming y Delivery, con una Wallet segura, historial detallado y soporte solidario por transacción de salida.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "TrioSphere Lite",
+  "description": "A high-performance system audit, legal compliance, and digital ledger simulation suite designed for SMEs.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
